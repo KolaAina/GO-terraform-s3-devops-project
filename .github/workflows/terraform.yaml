@@ -1,0 +1,198 @@
+name: Terraform CI/CD (OIDC)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1                 #keep in sync with your envs/*
+  TF_IN_AUTOMATION: "true"
+
+jobs:
+  lint_validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Terraform fmt (check)
+        working-directory: ./envs/dev/s3
+        run: terraform fmt -check -recursive
+
+      - name: Install tflint
+        uses: terraform-linters/setup-tflint@v4
+
+      - name: tflint
+        working-directory: ./envs/dev/s3
+        run: tflint --init && tflint
+
+      - name: Terraform validate (dev)
+        working-directory: ./envs/dev/s3
+        run: terraform init -backend=false && terraform validate
+
+  terratest_plan_only:
+    needs: [lint_validate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Install Go
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      # Install Terraform CLI (tests call `terraform`)
+      - uses: hashicorp/setup-terraform@v3
+
+      # Install Go dependencies explicitly
+      - name: Download Go modules 
+        working-directory: ./test  
+        run: go mod download
+
+      # Run Terratest
+      - name: Run Terratest (plan-only, no creds)
+        #working-directory: ./test
+        run: go test -v ./test -run Test_PlanChecks 
+      
+
+  plan_dev:
+    needs: [lint_validate, terratest_plan_only]
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (DEV)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}     #Repo → Settings → Variables → Actions
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform init -input=false
+
+      - name: Terraform Plan (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform plan -input=false -out=plan.tfplan
+
+      # Optional: fail on destructive changes
+      - name: Check for destroy actions
+        working-directory: ./envs/dev/s3
+        run: |
+          terraform show -json plan.tfplan | jq -e '
+            .resource_changes[]? | select(.change.actions[] | contains("delete"))
+          ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
+
+      - name: Upload Terraform Plan Artifact (DEV)
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-dev
+          path: ./envs/dev/s3/plan.tfplan # Upload the plan file as an artifact
+
+  apply_dev:
+    needs: [plan_dev]
+    runs-on: ubuntu-latest
+    environment: dev
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (DEV)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform init -input=false
+
+      - name: Terraform download plan artifact (DEV)
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-dev
+          path: ./envs/dev/s3/plan.tfplan # Download the plan artifact
+
+      - name: Terraform Apply (DEV)
+        working-directory: ./envs/dev/s3
+        run: terraform apply -input=false -auto-approve plan.tfplan
+
+  plan_prod:
+    needs: [apply_dev]
+    runs-on: ubuntu-latest
+    environment: prod     #Protect this environment & require reviewers
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (PROD)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}   #set repo variable
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (PROD)
+        working-directory: ./envs/prod/s3
+        run: terraform init -input=false
+
+      - name: Terraform Plan (PROD)
+        working-directory: ./envs/prod/s3
+        run: terraform plan -input=false -out=plan.tfplan
+
+      # Optional: fail on destructive changes
+      - name: Check for destroy actions (PROD)
+        working-directory: ./envs/prod/s3
+        run: |
+          terraform show -json plan.tfplan | jq -e '
+            .resource_changes[]? | select(.change.actions[] | contains("delete"))
+          ' && { echo "❌ Plan includes deletions"; exit 1; } || echo "✅ No deletions"
+
+      - name: Upload Terraform Plan Artifact (PROD)
+        uses: actions/upload-artifact@v4 
+        with:
+          name: terraform-plan-prod
+          path: ./envs/prod/s3/plan.tfplan # Upload the plan file as an artifact
+
+      
+  apply_prod:
+    needs: [plan_prod]
+    runs-on: ubuntu-latest
+    environment: prod     #Manual approval required (GitHub Environments)
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+
+      - name: Configure AWS credentials via OIDC (PROD)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (PROD)
+        working-directory: ./envs/prod/s3   
+        run: terraform init -input=false
+
+      - name: Terraform download plan artifact (PROD)
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan-prod
+          path: ./envs/prod/s3/plan.tfplan # Download the plan artifact
+
+      - name: Terraform Apply (PROD)
+        working-directory: ./envs/prod/s3       
+        run: terraform apply -input=false -auto-approve plan.tfplan

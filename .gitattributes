@@ -1,0 +1,49 @@
+# .gitattributes - Line ending configuration
+# This file ensures consistent line endings across different operating systems
+
+# Set default behavior for all files
+* text=auto
+
+# Explicitly declare text files you want to always be normalized and converted
+# to native line endings on checkout
+*.tf text
+*.tfvars text
+*.yaml text
+*.yml text
+*.md text
+*.json text
+*.go text
+*.mod text
+*.sum text
+
+# Declare files that will always have LF line endings on checkout
+*.sh text eol=lf
+*.ps1 text eol=crlf
+
+# Declare files that will always have CRLF line endings on checkout
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Denote all files that are truly binary and should not be modified
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.flv binary
+*.fla binary
+*.swf binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.eot binary
+*.woff binary
+*.woff2 binary
+*.pyc binary
+*.pdf binary
+*.tfplan binary
+*.tfstate binary

@@ -1,0 +1,217 @@
+# Terraform Security-Focused .gitignore
+# This file ensures sensitive data and temporary files are not committed to Git
+
+# =============================================================================
+# TERRAFORM FILES - CRITICAL SECURITY
+# =============================================================================
+
+# Terraform plan files (contain sensitive data)
+*.tfplan
+*.tfplan.*
+plan.tfplan
+plan-*.tfplan
+
+# Terraform state files (contain sensitive data)
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfstate.lock.info
+
+# Terraform variable files with sensitive data
+*.auto.tfvars
+*.auto.tfvars.json
+secrets.tfvars
+secrets.tfvars.json
+local.tfvars
+local.tfvars.json
+
+# Terraform crash log files
+crash.log
+crash.*.log
+
+# Terraform override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# =============================================================================
+# AWS & CLOUD PROVIDER FILES
+# =============================================================================
+
+# AWS credentials and config
+.aws/
+aws-credentials
+aws-config
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Cloud provider credentials
+.azure/
+.gcp/
+.oci/
+
+# =============================================================================
+# SECRETS & CREDENTIALS
+# =============================================================================
+
+# Environment files
+.env
+.env.local
+.env.*.local
+.env.production
+.env.staging
+
+# Secret files
+secrets/
+secrets.txt
+secrets.json
+secrets.yaml
+secrets.yml
+*.secret
+*.secrets
+
+# API keys and tokens
+api-keys.txt
+tokens.txt
+*.token
+*.key
+
+# =============================================================================
+# TERRAFORM WORKSPACE & CACHE
+# =============================================================================
+
+# Terraform directories
+.terraform/
+.terraform.lock.hcl
+
+# Terraform workspace files
+.terraform.tfstate.lock.info
+
+# =============================================================================
+# OPERATING SYSTEM FILES
+# =============================================================================
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+
+# =============================================================================
+# IDE & EDITOR FILES
+# =============================================================================
+
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Vim
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# LOGS & TEMPORARY FILES
+# =============================================================================
+
+# Log files
+*.log
+logs/
+log/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# =============================================================================
+# TESTING & COVERAGE
+# =============================================================================
+
+# Test coverage
+coverage/
+*.cover
+*.out
+
+# Test results
+test-results/
+test-output/
+
+# =============================================================================
+# DEPENDENCIES & PACKAGES
+# =============================================================================
+
+# Go
+vendor/
+
+# =============================================================================
+# DOCUMENTATION BUILD
+# =============================================================================
+
+# Documentation build
+docs/_build/
+site/
+
+# =============================================================================
+# PROJECT-SPECIFIC IGNORES
+# =============================================================================
+
+# Terraform project specific
+*.tfplan
+plan.tfplan
+plan-*.tfplan
+
+# KMS key files (if you store them locally)
+kms-keys/
+*.kms
+
+# Backup files
+backup/
+backups/
+
+# Local development files
+local/
+dev-local/
+prod-local/
+
+# =============================================================================
+# SECURITY NOTES
+# =============================================================================
+
+# NEVER COMMIT:
+# - Terraform state files (*.tfstate)
+# - Terraform plan files (*.tfplan)
+# - Files containing secrets or credentials
+# - AWS access keys or secret keys
+# - Private keys or certificates
+# - Database connection strings with passwords
+# - API keys or tokens
+# - Any file with "secret", "password", "key", "token" in the name
+
+# ALWAYS USE:
+# - Environment variables for sensitive data
+# - Terraform variables with default = null
+# - AWS Secrets Manager or Parameter Store
+# - GitHub Secrets for CI/CD
+# - Remote state backends (S3, etc.)
