@@ -7,7 +7,7 @@ create_kms_key        = false
 kms_key_arn           = null # Will be set after dev deployment
 
 github_owner  = "KolaAina"
-github_repo   = "terraform-devops-challenge"
+github_repo   = "GO-terraform-s3-devops-project"
 github_branch = "main" #must match your workflow triggers
 
 aws_account_id             = "443370701422"
