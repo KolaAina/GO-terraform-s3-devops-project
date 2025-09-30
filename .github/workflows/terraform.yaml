@@ -60,6 +60,13 @@ jobs:
         working-directory: ./test  
         run: go mod download
 
+      # Configure AWS credentials for testing
+      - name: Configure AWS credentials via OIDC (TEST)
+        uses: aws-actions/configure-aws-credentials@v3
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
+          aws-region: ${{ env.AWS_REGION }}
+          
       # Run Terratest
       - name: Run Terratest (plan-only, no creds)
         #working-directory: ./test
