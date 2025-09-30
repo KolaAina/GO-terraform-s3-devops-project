@@ -14,8 +14,8 @@ module "s3" {
   github_repo   = var.github_repo   # "YOUR_REPO"
   github_branch = var.github_branch # "main"
 
-  aws_account_id             = var.aws_account_id
-  existing_oidc_provider_arn = var.existing_oidc_provider_arn
+  aws_account_id                 = var.aws_account_id
+  existing_oidc_provider_arn     = var.existing_oidc_provider_arn
   terraform_state_bucket         = var.terraform_state_bucket
   terraform_state_key            = var.terraform_state_key
   terraform_state_dynamodb_table = var.terraform_state_dynamodb_table
