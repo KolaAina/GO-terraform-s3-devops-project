@@ -53,11 +53,11 @@ func Test_PlanChecks(t *testing.T) {
 
 	devDir := filepath.Join("..", "envs", "dev", "s3")
 
-	// Init with local backend to avoid needing creds
-	runTf(t, devDir, "init", "-backend=false")
+	// Init with S3 backend (AWS credentials provided by GitHub Actions OIDC)
+	runTf(t, devDir, "init", "-input=false")
 
-	// Plan locally and write a plan file
-	runTf(t, devDir, "plan", "-out=plan.tfplan", "-input=false", "-lock=false", "-refresh=false")
+	// Plan and write a plan file
+	runTf(t, devDir, "plan", "-out=plan.tfplan", "-input=false", "-lock=false")
 
 	// Show plan as JSON
 	out, err := exec.Command("terraform", "-chdir="+devDir, "show", "-json", "plan.tfplan").CombinedOutput()
