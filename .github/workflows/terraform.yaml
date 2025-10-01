@@ -66,7 +66,7 @@ jobs:
         with:
           role-to-assume: ${{ vars.AWS_ROLE_ARN_DEV }}
           aws-region: ${{ env.AWS_REGION }}
-          
+
       # Run Terratest
       - name: Run Terratest (plan-only, no creds)
         #working-directory: ./test
@@ -74,7 +74,7 @@ jobs:
       
 
   plan_dev:
-    needs: [lint_validate, terratest_plan_only]
+    needs: [terratest_plan_only]
     runs-on: ubuntu-latest
     environment: dev
     steps:
