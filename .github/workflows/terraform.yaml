@@ -132,7 +132,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan-dev
-          path: ./envs/dev/s3/plan.tfplan # Download the plan artifact
+          path: ./envs/dev/s3 # Download to directory
 
       - name: Terraform Apply (DEV)
         working-directory: ./envs/dev/s3
@@ -198,7 +198,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan-prod
-          path: ./envs/prod/s3/plan.tfplan # Download the plan artifact
+          path: ./envs/prod/s3 # Download to directory
 
       - name: Terraform Apply (PROD)
         working-directory: ./envs/prod/s3       
