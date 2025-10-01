@@ -114,9 +114,13 @@ data "aws_iam_policy_document" "trust" {
     }
 
     condition {
-      test     = "StringEquals"
+      test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [local.github_sub]
+      values   = [
+        "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/${var.github_branch}",
+        "repo:${var.github_owner}/${var.github_repo}:environment:dev",
+        "repo:${var.github_owner}/${var.github_repo}:environment:prod"
+      ]
     }
   }
 }
