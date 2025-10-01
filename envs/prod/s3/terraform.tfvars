@@ -13,6 +13,11 @@ github_branch = "main" #must match your workflow triggers
 aws_account_id             = "443370701422"
 existing_oidc_provider_arn = "arn:aws:iam::443370701422:oidc-provider/token.actions.githubusercontent.com" # set if you already have it
 
+# State bucket for IAM permissions
+terraform_state_bucket         = "kada-terraform-eks-state-s3-bucket"
+terraform_state_key            = "s3-oidc-prod-terraform.tfstate"
+terraform_state_dynamodb_table = "kada-terraform-eks-state-lock"
+
 tags = {
   Project = "kolam"
   Owner   = "kolam"

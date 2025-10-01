@@ -16,6 +16,10 @@ locals {
 
   # Build trust subjects. You can extend this list (e.g., tags or PRs) if needed.
   github_sub = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/${var.github_branch}"
+
+  common_tags = merge(var.tags, {
+    AccountId = var.aws_account_id
+  })
 }
 
 # --- (Optional) KMS Key ---
@@ -24,7 +28,7 @@ resource "aws_kms_key" "bucket" {
   description             = "KMS key for ${local.bucket_name}"
   deletion_window_in_days = 7
   enable_key_rotation     = true
-  tags                    = var.tags
+  tags                    = local.common_tags
 }
 
 resource "aws_kms_alias" "bucket" {
@@ -41,7 +45,7 @@ locals {
 # --- S3 Bucket ---
 resource "aws_s3_bucket" "this" {
   bucket = local.bucket_name
-  tags   = var.tags
+  tags   = local.common_tags
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
@@ -120,7 +124,7 @@ data "aws_iam_policy_document" "trust" {
 resource "aws_iam_role" "github_actions" {
   name               = "${var.project_id}-gh-oidc-role"
   assume_role_policy = data.aws_iam_policy_document.trust.json
-  tags               = var.tags
+  tags               = local.common_tags
 }
 
 # --- Least-privilege policy for bucket + optional KMS ---
@@ -159,13 +163,102 @@ data "aws_iam_policy_document" "bucket" {
       resources = [local.effective_kms_key_arn]
     }
   }
+
+
+  # Add KMS permissions if KMS encryption is enabled
+  dynamic "statement" {
+    for_each = var.enable_kms_encryption ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "kms:CreateKey",
+        "kms:CreateAlias",
+        "kms:TagResource",
+        "kms:EnableKeyRotation",
+        "kms:ScheduleKeyDeletion"
+      ]
+      resources = ["*"]
+    }
+  }
+
+  # Terraform state bucket access (if provided)
+
+  dynamic "statement" {
+    for_each = var.terraform_state_bucket != null ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:ListBucket",
+        "s3:DeleteObject",
+        "s3:GetBucketVersioning"
+      ]
+      resources = [
+        "arn:aws:s3:::${var.terraform_state_bucket}/${var.terraform_state_key != null ? var.terraform_state_key : "*"}"
+      ]
+    }
+  }
+
+  # Add permissions to create and read resources
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:CreateBucket",
+      "s3:PutBucketPublicAccessBlock",
+      "s3:PutBucketVersioning",
+      "s3:PutBucketEncryption",
+      "s3:PutBucketOwnershipControls",
+      "s3:PutBucketPolicy",
+      "s3:DeleteBucketPolicy",
+      "s3:Get*",
+      "s3:List*"
+    ]
+    resources = ["*"]
+  }
+
+  # DynamoDB state locking (if provided)
+  dynamic "statement" {
+    for_each = var.terraform_state_dynamodb_table != null ? [1] : []
+    content {
+      effect = "Allow"
+      actions = [
+        "dynamodb:DescribeTable",
+        "dynamodb:GetItem",
+        "dynamodb:PutItem",
+        "dynamodb:DeleteItem"
+      ]
+      resources = ["arn:aws:dynamodb:${var.aws_region}:*:table/${var.terraform_state_dynamodb_table}"]
+    }
+  }
+
+  statement {
+    effect = "Allow"
+    actions = [
+      "iam:CreateOpenIDConnectProvider",
+      "iam:CreateRole",
+      "iam:CreatePolicy",
+      "iam:CreatePolicyVersion",
+      "iam:AttachRolePolicy",
+      "iam:DetachRolePolicy",
+      "iam:DeleteRole",
+      "iam:DeletePolicy",
+      "iam:DeletePolicyVersion",
+      "iam:GetPolicyVersion",
+      "iam:TagRole",
+      "iam:TagPolicy",
+      "iam:Get*",
+      "iam:List*"
+    ]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_policy" "bucket" {
   name        = "${var.project_id}-bucket-access"
   description = "Access to ${local.bucket_name} and (optional) its KMS key"
   policy      = data.aws_iam_policy_document.bucket.json
-  tags        = var.tags
+  tags        = local.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "attach" {

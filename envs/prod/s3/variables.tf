@@ -34,3 +34,18 @@ variable "tags" {
   type    = map(string)
   default = {}
 }
+
+variable "terraform_state_bucket" {
+  type    = string
+  default = null
+}
+
+variable "terraform_state_key" {
+  type    = string
+  default = null
+}
+
+variable "terraform_state_dynamodb_table" {
+  type    = string
+  default = null
+}

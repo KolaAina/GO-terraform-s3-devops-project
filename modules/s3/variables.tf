@@ -77,7 +77,7 @@ variable "terraform_state_bucket" {
 }
 
 variable "terraform_state_key" {
-  description = "S3 key for Terraform state (for IAM permissions)"
+  description = "S3 key pattern for Terraform state (for IAM permissions)"
   type        = string
   default     = null
 }
